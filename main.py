@@ -69,7 +69,26 @@ def load_slice(image):
     ia = vtk.vtkImageSlice()
     ia.SetMapper(im)
     ia.SetProperty(ip)
+
     return im, ia
+
+# To handle click events
+class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
+ 
+    def __init__(self,parent=None):
+        self.AddObserver("LeftButtonPressEvent",self.leftButtonPressEvent)
+ 
+    def leftButtonPressEvent(self,obj,event):
+        self.OnLeftButtonDown()
+        clickPos = self.GetInteractor().GetEventPosition()
+
+        picker = vtk.vtkCellPicker()
+        picker.Pick(clickPos[0], clickPos[1], 0, self.GetDefaultRenderer())
+        world_pos = picker.GetPickPosition()
+        print(world_pos)
+        
+        self.OnLeftButtonDown()
+
 
 def main():
     # volume is the VTK object we render. image is loaded from the file
@@ -84,12 +103,15 @@ def main():
     renderWin.AddRenderer(renderer)
     renderInteractor = vtk.vtkRenderWindowInteractor()
     renderInteractor.SetRenderWindow(renderWin)
-    renderInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
+    style = MouseInteractorHighLightActor()
+    style.SetDefaultRenderer(renderer)
+    renderInteractor.SetInteractorStyle(style)
+    # renderInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
     colors = vtk.vtkNamedColors()
     renderer.SetBackground(colors.GetColor3d("black"))
 
     # Setup camera
-    camera =vtk.vtkCamera()
+    camera = vtk.vtkCamera()
     camera.SetPosition(-400, 114, 50)
     camera.SetFocalPoint(114, 114, 50)
     camera.SetViewUp(0, 0.0, 1.0)
@@ -99,7 +121,7 @@ def main():
     # renderer.AddVolume(volume)
 
     # Add the slice
-    renderer.AddViewProp(slice_ia)
+    renderer.AddActor(slice_ia)
 
     # ... and set window size.
     renderWin.SetSize(900, 900)
@@ -110,11 +132,9 @@ def main():
         plane.SetOrigin(new_slice, 114, 50)
 
     SliderRepres = vtk.vtkSliderRepresentation2D()
-    slider_min = 0
-    slider_max = 240
-    SliderRepres.SetMinimumValue(slider_min)
-    SliderRepres.SetMaximumValue(slider_max)
-    SliderRepres.SetValue((slider_min + slider_max) / 2)
+    SliderRepres.SetMinimumValue(0)
+    SliderRepres.SetMaximumValue(240)
+    SliderRepres.SetValue(144)
     SliderRepres.SetTitleText("Slice")
     SliderRepres.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
     SliderRepres.GetPoint1Coordinate().SetValue(0.7, 0.9)
