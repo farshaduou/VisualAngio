@@ -40,6 +40,7 @@ def load_volume(filename):
     volumeProperty.SetScalarOpacity(alphaChannelFunc)
 
     volumeMapper = vtk.vtkFixedPointVolumeRayCastMapper()
+    volumeMapper.CroppingOn()
     volumeMapper.SetInputConnection(reader.GetOutputPort())
 
     # The class vtkVolume is used to pair the previously declared volume as well as the properties
@@ -47,49 +48,13 @@ def load_volume(filename):
     volume = vtk.vtkVolume()
     volume.SetMapper(volumeMapper)
     volume.SetProperty(volumeProperty)
+    volume.SetPickable(False)
 
     return volume, reader.GetOutputPort()
-
-def volume_subset(image):
-    voi = vtk.vtkExtractVOI()
-    voi.SetInputConnection(image)
-    voi.SetVOI(0, 447, 0, 447, 0, 127)
-
-    mapper = vtk.vtkFixedPointVolumeRayCastMapper()
-    mapper.SetInputConnection(voi.GetOutputPort())
-    # The following class is used to store transparency-values for later retrival.
-    #  In our case, we want the value 0 to be
-    # completely opaque whereas the three different cubes are given different transparency-values to show how it works.
-    alphaChannelFunc = vtk.vtkPiecewiseFunction()
-    alphaChannelFunc.AddPoint(0, 0.0)
-    alphaChannelFunc.AddPoint(50, 0.05)
-    alphaChannelFunc.AddPoint(100, 0.1)
-    alphaChannelFunc.AddPoint(150, 0.2)
-
-    # This class stores color data and can create color tables from a few color points.
-    #  For this demo, we want the three cubes to be of the colors red green and blue.
-    colorFunc = vtk.vtkColorTransferFunction()
-    colorFunc.AddRGBPoint(50, 1.0, 0.0, 0.0)
-    colorFunc.AddRGBPoint(100, 0.0, 1.0, 0.0)
-    colorFunc.AddRGBPoint(150, 0.0, 0.0, 1.0)
-
-    # The previous two classes stored properties.
-    #  Because we want to apply these properties to the volume we want to render,
-    # we have to store them in a class that stores volume properties.
-    volumeProperty = vtk.vtkVolumeProperty()
-    volumeProperty.SetColor(colorFunc)
-    volumeProperty.SetScalarOpacity(alphaChannelFunc)
-
-    volume = vtk.vtkVolume()
-    volume.SetMapper(mapper)
-    volume.SetProperty(volumeProperty)
-    return voi, volume
 
 def load_slice(image):
     im = vtk.vtkImageResliceMapper()
     im.SetInputConnection(image)
-    # im.SliceFacesCameraOn()
-    # im.SliceAtFocalPointOn()
     im.BorderOff()
     plane = im.GetSlicePlane()
     plane.SetNormal(1.0, 0.0, 0.0)
@@ -133,19 +98,18 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
             self.OnLeftButtonDown()
             return
 
-        print(world_pos)
-        world_pos = (114, 114, 50)
+        print(f'world_pos: {world_pos}')
         debug_sphere.SetCenter(*world_pos)
 
-        d = 35 # Size of box
+        d = 15 # Size of box
         voi_min = [max(x - d, 0) for x in world_pos]
         voi_max = [min(world_pos[i] + d, maxes[i]) for i in range(3)]
-        print(voi_min, voi_max)
-        self.voi.SetVOI(
+        self.voi.SetCroppingRegionPlanes(
             voi_min[0], voi_max[0],
             voi_min[1], voi_max[1],
             voi_min[2], voi_max[2],
         )
+        self.voi.Update()
         
         # self.OnLeftButtonDown()
 
@@ -153,13 +117,10 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
 def main():
     global debug_sphere
     # volume is the VTK object we render. image is loaded from the file
-    _, image = load_volume('data/Normal-001/MRA/Normal001-MRA.mha')
+    volume, image = load_volume('data/Normal-001/MRA/Normal001-MRA.mha')
 
     # load the slice
     slice_im, slice_ia = load_slice(image)
-
-    # Subset
-    voi, subset_actor = volume_subset(image)
 
     # Create the renderer
     renderer = vtk.vtkRenderer()
@@ -169,7 +130,7 @@ def main():
     renderInteractor.SetRenderWindow(renderWin)
     style = MouseInteractorHighLightActor()
     style.SetDefaultRenderer(renderer)
-    style.set_voi(voi)
+    style.set_voi(volume.GetMapper())
     renderInteractor.SetInteractorStyle(style)
     # renderInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
     colors = vtk.vtkNamedColors()
@@ -185,8 +146,7 @@ def main():
 
     # Add stuff
     renderer.AddActor(slice_ia)
-    renderer.AddActor(subset_actor)
-    # renderer.AddVolume(volume)
+    renderer.AddVolume(volume)
 
     # ... and set window size.
     renderWin.SetSize(900, 900)
