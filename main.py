@@ -1,5 +1,3 @@
-# https://github.com/lorensen/VTKExamples/blob/master/src/Python/Utilities/VTKWithNumpy.py
-
 import numpy as np
 import vtk
 
@@ -10,6 +8,7 @@ def load_volume(filename):
     (xMin, xMax, yMin, yMax, zMin, zMax) = reader.GetExecutive().GetWholeExtent(reader.GetOutputInformation(0))
     (xSpacing, ySpacing, zSpacing) = reader.GetOutput().GetSpacing()
     (x0, y0, z0) = reader.GetOutput().GetOrigin()
+    print(f'Origin: {(x0, y0, z0)}')
     center = [x0 + xSpacing * 0.5 * (xMin + xMax),
             y0 + ySpacing * 0.5 * (yMin + yMax),
             z0 + zSpacing * 0.5 * (zMin + zMax)]
@@ -47,10 +46,37 @@ def load_volume(filename):
     volume.SetMapper(volumeMapper)
     volume.SetProperty(volumeProperty)
 
-    return volume
+    return volume, reader.GetOutputPort()
+
+def load_slice(image):
+    im = vtk.vtkImageResliceMapper()
+    im.SetInputConnection(image)
+    # im.SliceFacesCameraOn()
+    # im.SliceAtFocalPointOn()
+    im.BorderOff()
+    plane = im.GetSlicePlane()
+    plane.SetNormal(1.0, 0.0, 0.0)
+    plane.SetOrigin(114, 114, 50)
+
+    ip = vtk.vtkImageProperty()
+    ip.SetColorWindow(2000)
+    ip.SetColorLevel(1000)
+    ip.SetAmbient(0.0)
+    ip.SetDiffuse(1.0)
+    ip.SetOpacity(1.0)
+    ip.SetInterpolationTypeToLinear()
+
+    ia = vtk.vtkImageSlice()
+    ia.SetMapper(im)
+    ia.SetProperty(ip)
+    return im, ia
 
 def main():
-    volume = load_volume('data/Normal-001/MRA/Normal001-MRA.mha')
+    # volume is the VTK object we render. image is loaded from the file
+    volume, image = load_volume('data/Normal-001/MRA/Normal001-MRA.mha')
+
+    # load the slice
+    slice_im, slice_ia = load_slice(image)
 
     # Create the renderer
     renderer = vtk.vtkRenderer()
@@ -59,33 +85,41 @@ def main():
     renderInteractor = vtk.vtkRenderWindowInteractor()
     renderInteractor.SetRenderWindow(renderWin)
     renderInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
+    colors = vtk.vtkNamedColors()
+    renderer.SetBackground(colors.GetColor3d("black"))
+
+    # Setup camera
+    camera =vtk.vtkCamera()
+    camera.SetPosition(-400, 114, 50)
+    camera.SetFocalPoint(114, 114, 50)
+    camera.SetViewUp(0, 0.0, 1.0)
+    renderer.SetActiveCamera(camera)
 
     # We add the volume to the renderer
-    renderer.AddVolume(volume)
-    colors = vtk.vtkNamedColors()
-    renderer.SetBackground(colors.GetColor3d("MistyRose"))
+    # renderer.AddVolume(volume)
+
+    # Add the slice
+    renderer.AddViewProp(slice_ia)
 
     # ... and set window size.
     renderWin.SetSize(900, 900)
 
     def vtkSliderCallback2(obj, event):
         new_slice = int(obj.GetRepresentation().GetValue())
-        reslice.Update()
-        sliceSpacing = reslice.GetOutput().GetSpacing()[2]
-        matrix = reslice.GetResliceAxes()
-        matrix.SetElement(0, 3, new_slice)
+        plane = slice_im.GetSlicePlane()
+        plane.SetOrigin(new_slice, 114, 50)
 
     SliderRepres = vtk.vtkSliderRepresentation2D()
     slider_min = 0
-    slider_max = 200
+    slider_max = 240
     SliderRepres.SetMinimumValue(slider_min)
     SliderRepres.SetMaximumValue(slider_max)
     SliderRepres.SetValue((slider_min + slider_max) / 2)
     SliderRepres.SetTitleText("Slice")
     SliderRepres.GetPoint1Coordinate().SetCoordinateSystemToNormalizedDisplay()
-    SliderRepres.GetPoint1Coordinate().SetValue(0.2, 0.6)
+    SliderRepres.GetPoint1Coordinate().SetValue(0.7, 0.9)
     SliderRepres.GetPoint2Coordinate().SetCoordinateSystemToNormalizedDisplay()
-    SliderRepres.GetPoint2Coordinate().SetValue(0.4, 0.6)
+    SliderRepres.GetPoint2Coordinate().SetValue(0.9, 0.9)
 
     SliderRepres.SetSliderLength(0.02)
     SliderRepres.SetSliderWidth(0.03)
