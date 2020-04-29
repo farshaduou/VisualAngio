@@ -3,10 +3,9 @@
 import numpy as np
 import vtk
 
-def main():
-    colors = vtk.vtkNamedColors()
+def load_volume(filename):
     reader = vtk.vtkMetaImageReader()
-    reader.SetFileName('data/Normal-001/MRA/Normal001-MRA.mha')
+    reader.SetFileName(filename)
     reader.Update()
     (xMin, xMax, yMin, yMax, zMin, zMax) = reader.GetExecutive().GetWholeExtent(reader.GetOutputInformation(0))
     (xSpacing, ySpacing, zSpacing) = reader.GetOutput().GetSpacing()
@@ -48,50 +47,27 @@ def main():
     volume.SetMapper(volumeMapper)
     volume.SetProperty(volumeProperty)
 
-    # Get slice
-    sagittal = vtk.vtkMatrix4x4()
-    sagittal.DeepCopy((0, 0,-1, center[0],
-                    1, 0, 0, center[1],
-                    0,-1, 0, center[2],
-                    0, 0, 0, 1))
-    # Extract a slice in the desired orientation
-    reslice = vtk.vtkImageReslice()
-    reslice.SetInputConnection(reader.GetOutputPort())
-    reslice.SetOutputDimensionality(2)
-    reslice.SetResliceAxes(sagittal)
-    reslice.SetInterpolationModeToLinear()
-    # Create a greyscale lookup table
-    table = vtk.vtkLookupTable()
-    table.SetRange(0, 2000) # image intensity range
-    table.SetValueRange(0.0, 1.0) # from black to white
-    table.SetSaturationRange(0.0, 0.0) # no color saturation
-    table.SetRampToLinear()
-    table.Build()
-    # Map the image through the lookup table
-    sliceColor = vtk.vtkImageMapToColors()
-    sliceColor.SetLookupTable(table)
-    sliceColor.SetInputConnection(reslice.GetOutputPort())
-    # Display the image
-    actor = vtk.vtkImageActor()
-    actor.GetMapper().SetInputConnection(sliceColor.GetOutputPort())
+    return volume
 
-    # With almost everything else ready, its time to initialize the renderer and window, as well as
-    #  creating a method for exiting the application
+def main():
+    volume = load_volume('data/Normal-001/MRA/Normal001-MRA.mha')
+
+    # Create the renderer
     renderer = vtk.vtkRenderer()
     renderWin = vtk.vtkRenderWindow()
     renderWin.AddRenderer(renderer)
     renderInteractor = vtk.vtkRenderWindowInteractor()
     renderInteractor.SetRenderWindow(renderWin)
+    renderInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
 
-    # We add the volume to the renderer ...
-    # renderer.AddVolume(volume)
-    renderer.AddActor(actor)
+    # We add the volume to the renderer
+    renderer.AddVolume(volume)
+    colors = vtk.vtkNamedColors()
     renderer.SetBackground(colors.GetColor3d("MistyRose"))
 
     # ... and set window size.
     renderWin.SetSize(900, 900)
 
-    ###### Copied from https://stackoverflow.com/questions/3900253/vtk-how-can-i-add-a-scrollbar-to-my-project
     def vtkSliderCallback2(obj, event):
         new_slice = int(obj.GetRepresentation().GetValue())
         reslice.Update()
@@ -101,7 +77,7 @@ def main():
 
     SliderRepres = vtk.vtkSliderRepresentation2D()
     slider_min = 0
-    slider_max = 100
+    slider_max = 200
     SliderRepres.SetMinimumValue(slider_min)
     SliderRepres.SetMaximumValue(slider_max)
     SliderRepres.SetValue((slider_min + slider_max) / 2)
