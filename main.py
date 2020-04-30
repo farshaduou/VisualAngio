@@ -16,21 +16,15 @@ def load_volume(filename):
             z0 + zSpacing * 0.5 * (zMin + zMax)]
 
 
-    # The following class is used to store transparency-values for later retrival.
-    #  In our case, we want the value 0 to be
-    # completely opaque whereas the three different cubes are given different transparency-values to show how it works.
     alphaChannelFunc = vtk.vtkPiecewiseFunction()
     alphaChannelFunc.AddPoint(0, 0.0)
-    alphaChannelFunc.AddPoint(50, 0.05)
-    alphaChannelFunc.AddPoint(100, 0.1)
-    alphaChannelFunc.AddPoint(150, 0.2)
+    alphaChannelFunc.AddPoint(100, 0.05)
+    alphaChannelFunc.AddPoint(1106, 1.0)
 
-    # This class stores color data and can create color tables from a few color points.
-    #  For this demo, we want the three cubes to be of the colors red green and blue.
     colorFunc = vtk.vtkColorTransferFunction()
-    colorFunc.AddRGBPoint(50, 1.0, 0.0, 0.0)
-    colorFunc.AddRGBPoint(100, 0.0, 1.0, 0.0)
-    colorFunc.AddRGBPoint(150, 0.0, 0.0, 1.0)
+    colorFunc.AddRGBPoint(0, 0.0, 0.0, 0.0)
+    colorFunc.AddRGBPoint(400, 1.0, 0.0, 0.0)
+    colorFunc.AddRGBPoint(1106, 0.0, 0.0, 1.0)
 
     # The previous two classes stored properties.
     #  Because we want to apply these properties to the volume we want to render,
@@ -96,8 +90,9 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
 
         # print(f'world_pos: {world_pos}')
         debug_sphere.SetCenter(*world_pos)
+        debug_sphere.SetRadius(1.1)
 
-        d = 15 # Size of box
+        d = 25 # Size of box
         voi_min = [max(x - d, 0) for x in world_pos]
         voi_max = [min(world_pos[i] + d, maxes[i]) for i in range(3)]
         self.voi.SetCroppingRegionPlanes(
