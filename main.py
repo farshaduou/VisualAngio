@@ -81,24 +81,20 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
     def __init__(self,parent=None):
         self.AddObserver("LeftButtonPressEvent",self.leftButtonPressEvent)
         self.subset = None
+        self.world_pos = [0, 0, 0]
     
     def set_voi(self, voi):
         self.voi = voi
- 
-    def leftButtonPressEvent(self,obj,event):
-        global debug_sphere
-        self.OnLeftButtonDown()
-        clickPos = self.GetInteractor().GetEventPosition()
 
-        picker = vtk.vtkCellPicker()
-        picker.Pick(clickPos[0], clickPos[1], 0, self.GetDefaultRenderer())
-        world_pos = [int(x) for x in picker.GetPickPosition()]
+    def update_crop(self, world_pos):
         maxes = [447, 447, 127]
         if any((world_pos[i] < 0 or world_pos[i] > maxes[i]) for i in range(3)):
-            self.OnLeftButtonDown()
             return
+        world_pos = [int(x) for x in world_pos]
+        self.world_pos = world_pos
+        maxes = [447, 447, 127]
 
-        print(f'world_pos: {world_pos}')
+        # print(f'world_pos: {world_pos}')
         debug_sphere.SetCenter(*world_pos)
 
         d = 15 # Size of box
@@ -110,9 +106,18 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
             voi_min[2], voi_max[2],
         )
         self.voi.Update()
-        
-        # self.OnLeftButtonDown()
+ 
+    def leftButtonPressEvent(self,obj,event):
+        global debug_sphere
+        self.OnLeftButtonDown()
+        clickPos = self.GetInteractor().GetEventPosition()
 
+        picker = vtk.vtkCellPicker()
+        picker.Pick(clickPos[0], clickPos[1], 0, self.GetDefaultRenderer())
+        world_pos = picker.GetPickPosition()
+        self.update_crop(world_pos)
+
+        self.OnLeftButtonDown()
 
 def main():
     global debug_sphere
@@ -128,10 +133,10 @@ def main():
     renderWin.AddRenderer(renderer)
     renderInteractor = vtk.vtkRenderWindowInteractor()
     renderInteractor.SetRenderWindow(renderWin)
-    style = MouseInteractorHighLightActor()
-    style.SetDefaultRenderer(renderer)
-    style.set_voi(volume.GetMapper())
-    renderInteractor.SetInteractorStyle(style)
+    mouse_interactor = MouseInteractorHighLightActor()
+    mouse_interactor.SetDefaultRenderer(renderer)
+    mouse_interactor.set_voi(volume.GetMapper())
+    renderInteractor.SetInteractorStyle(mouse_interactor)
     # renderInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
     colors = vtk.vtkNamedColors()
     renderer.SetBackground(colors.GetColor3d("black"))
@@ -168,6 +173,10 @@ def main():
         new_slice = int(obj.GetRepresentation().GetValue())
         plane = slice_im.GetSlicePlane()
         plane.SetOrigin(new_slice, 114, 50)
+
+        world_pos = mouse_interactor.world_pos
+        world_pos = (new_slice, *world_pos[1:])
+        mouse_interactor.update_crop(world_pos)
 
     slider = vtk.vtkSliderRepresentation2D()
     slider.SetMinimumValue(0)
