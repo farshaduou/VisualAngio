@@ -18,8 +18,8 @@ def load_volume(filename):
 
     alphaChannelFunc = vtk.vtkPiecewiseFunction()
     alphaChannelFunc.AddPoint(0, 0.0)
-    alphaChannelFunc.AddPoint(400, 0.07)
-    alphaChannelFunc.AddPoint(230, 0.01)
+    alphaChannelFunc.AddPoint(130, 0.01)
+    alphaChannelFunc.AddPoint(400, 0.27)
     alphaChannelFunc.AddPoint(650, 0.9)
     alphaChannelFunc.AddPoint(1106, 1.0)
 
@@ -51,6 +51,27 @@ def load_volume(filename):
 
     return volume, reader.GetOutputPort()
 
+def load_isosurface(image):
+    iso = vtk.vtkContourFilter()
+    # iso = vtk.vtkMarchingCubes()
+    iso.SetInputConnection(image)
+    iso.ComputeNormalsOn()
+    for i in range(8):
+        iso.SetValue(i, i*33.33 + 266.67)
+    iso.Update()
+
+    isoMapper = vtk.vtkPolyDataMapper()
+    isoMapper.SetInputData(iso.GetOutput())
+    isoMapper.ScalarVisibilityOff()
+
+    # Take the isosurface data and create geometry
+    actor = vtk.vtkLODActor()
+    actor.SetNumberOfCloudPoints( 1000000 )
+    actor.SetMapper(isoMapper)
+    actor.SetVisibility(False)
+    actor.GetProperty().SetColor( 1, 0, 0 )
+    return actor
+
 def load_slice(image):
     im = vtk.vtkImageResliceMapper()
     im.SetInputConnection(image)
@@ -79,11 +100,15 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
  
     def __init__(self,parent=None):
         self.AddObserver("LeftButtonPressEvent",self.leftButtonPressEvent)
+        self.AddObserver("KeyPressEvent",self.keyPressEvent)
         self.subset = None
         self.world_pos = [0, 0, 0]
     
     def set_voi(self, voi):
         self.voi = voi
+    
+    def set_isosurface(self, iso_actor):
+        self.iso_actor = iso_actor
 
     def update_crop(self, world_pos):
         maxes = [447, 447, 127]
@@ -109,6 +134,13 @@ class MouseInteractorHighLightActor(vtk.vtkInteractorStyleTrackballCamera):
 
     def update_params(self,world_pos):
         self.voi.SetProperty(volumeProperty)
+
+    def keyPressEvent(self,obj,event):
+        key = self.GetInteractor().GetKeySym()
+        if key == 'space':
+            vis = self.iso_actor.GetVisibility()
+            self.iso_actor.SetVisibility(not vis)
+            self.GetInteractor().Render()
  
     def leftButtonPressEvent(self,obj,event):
         global debug_sphere
@@ -130,6 +162,9 @@ def main():
     # load the slice
     slice_im, slice_ia = load_slice(image)
 
+    # load isosurface
+    iso_actor = load_isosurface(image)
+
     # Create the renderer
     renderer = vtk.vtkRenderer()
     renderWin = vtk.vtkRenderWindow()
@@ -139,10 +174,11 @@ def main():
     mouse_interactor = MouseInteractorHighLightActor()
     mouse_interactor.SetDefaultRenderer(renderer)
     mouse_interactor.set_voi(volume.GetMapper())
+    mouse_interactor.set_isosurface(iso_actor)
     renderInteractor.SetInteractorStyle(mouse_interactor)
     # renderInteractor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
     colors = vtk.vtkNamedColors()
-    renderer.SetBackground(colors.GetColor3d("grey"))
+    renderer.SetBackground(colors.GetColor3d("#505050"))
 
     # Setup camera
     camera = vtk.vtkCamera()
@@ -151,9 +187,9 @@ def main():
     camera.SetViewUp(0, 0.0, 1.0)
     renderer.SetActiveCamera(camera)
 
-
     # Add stuff
     renderer.AddActor(slice_ia)
+    renderer.AddActor(iso_actor)
     renderer.AddVolume(volume)
 
     # ... and set window size.
@@ -208,7 +244,7 @@ def main():
     slider.SetTitleHeight(0.02)
     slider.SetLabelHeight(0.02)
 
-
+    """
     # Opacity Slider
     slider2 = vtk.vtkSliderRepresentation2D()
     slider2.SetMinimumValue(0)
@@ -229,6 +265,14 @@ def main():
     slider2.SetTitleHeight(0.02)
     slider2.SetLabelHeight(0.02)
     
+    slider_widget2 = vtk.vtkSliderWidget()
+    slider_widget2.SetInteractor(renderInteractor)
+    slider_widget2.SetRepresentation(slider2)
+    slider_widget2.KeyPressActivationOff()
+    slider_widget2.SetAnimationModeToAnimate()
+    slider_widget2.SetEnabled(True)
+    slider_widget2.AddObserver("InteractionEvent", vtkOpacitySliderCallback)
+    """
     # widget
     slider_widget = vtk.vtkSliderWidget()
     slider_widget.SetInteractor(renderInteractor)
@@ -237,14 +281,6 @@ def main():
     slider_widget.SetAnimationModeToAnimate()
     slider_widget.SetEnabled(True)
     slider_widget.AddObserver("InteractionEvent", vtkSliderCallback2)
-    
-    slider_widget2 = vtk.vtkSliderWidget()
-    slider_widget2.SetInteractor(renderInteractor)
-    slider_widget2.SetRepresentation(slider2)
-    slider_widget2.KeyPressActivationOff()
-    slider_widget2.SetAnimationModeToAnimate()
-    slider_widget2.SetEnabled(True)
-    slider_widget2.AddObserver("InteractionEvent", vtkOpacitySliderCallback)
 
     # A simple function to be called when the user decides to quit the application.
     def exitCheck(obj, event):
