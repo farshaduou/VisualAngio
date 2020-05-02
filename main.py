@@ -18,8 +18,8 @@ def load_volume(filename):
 
     alphaChannelFunc = vtk.vtkPiecewiseFunction()
     alphaChannelFunc.AddPoint(0, 0.0)
-    alphaChannelFunc.AddPoint(400, 0.07)
-    alphaChannelFunc.AddPoint(230, 0.01)
+    alphaChannelFunc.AddPoint(400, 0.2)
+    alphaChannelFunc.AddPoint(230, 0.00)
     alphaChannelFunc.AddPoint(650, 0.9)
     alphaChannelFunc.AddPoint(1106, 1.0)
 
@@ -27,8 +27,8 @@ def load_volume(filename):
     colorFunc = vtk.vtkColorTransferFunction()
     colorFunc.AddRGBPoint(0, 0.0, 0.0, 0.0)
     colorFunc.AddRGBPoint(400, 1.0, 0.0, 0.0)
-    #colorFunc.AddRGBPoint(650, 0.0, 0.0, 1.0)
-    #colorFunc.AddRGBPoint(230, 0.0, 0.0, 0.0)
+    colorFunc.AddRGBPoint(650, 1.0, 0.0, 0.0)
+    colorFunc.AddRGBPoint(230, 1.0, 0.0, 0.0)
     colorFunc.AddRGBPoint(1106, 0.0, 0.0, 1.0)
 
     # The previous two classes stored properties.
