@@ -7,3 +7,5 @@ mv "ITKTubeTK - Bullitt - Healthy MR Database/Designed Database of MR Brain Imag
 ```
 
 Run `python main.py`
+
+
