@@ -1,5 +1,12 @@
 # VisualAngio
 
+VisualAngio is an interactive visualization tool for better understanding of cerebrovasculature structure.
+<p align="center">
+  <img src = "/Final%20Report/images/preview.png" width="500px"/>
+</p>
+
+# How to Run
+
 Install vtk in conda/virtualenv. Example data file provided 
 For more data points your can download the dataset from [here](https://public.kitware.com/Wiki/TubeTK/Data). Extract this, and move the folder inside and call it `data`:
 
