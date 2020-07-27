@@ -7,17 +7,16 @@ VisualAngio is an interactive visualization tool for better understanding of cer
 
 # How to Run
 
-Install vtk in conda/virtualenv. Then run the following command:
-
-```
-mv "ITKTubeTK - Bullitt - Healthy MR Database/Designed Database of MR Brain Images of Healthy Volunteers/" data
-```
+Install vtk in conda/virtualenv. Then run:
 
 Run `python main.py`
 
 Example data file provided.
 For more data points you can download the dataset from [here](https://public.kitware.com/Wiki/TubeTK/Data). Extract the files, then move the folder inside and call it `data`.
 
+```
+mv "ITKTubeTK - Bullitt - Healthy MR Database/Designed Database of MR Brain Images of Healthy Volunteers/" data
+```
 
 # How the UI works:
 
