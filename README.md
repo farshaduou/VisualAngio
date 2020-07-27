@@ -7,14 +7,16 @@ VisualAngio is an interactive visualization tool for better understanding of cer
 
 # How to Run
 
-Install vtk in conda/virtualenv. Example data file provided 
-For more data points your can download the dataset from [here](https://public.kitware.com/Wiki/TubeTK/Data). Extract this, and move the folder inside and call it `data`:
+Install vtk in conda/virtualenv. Then run the following command:
 
 ```
 mv "ITKTubeTK - Bullitt - Healthy MR Database/Designed Database of MR Brain Images of Healthy Volunteers/" data
 ```
 
 Run `python main.py`
+
+Example data file provided.
+For more data points you can download the dataset from [here](https://public.kitware.com/Wiki/TubeTK/Data). Extract the files, then move the folder inside and call it `data`.
 
 
 # How the UI works:
@@ -24,12 +26,12 @@ You can navigate through the slices of MRA images using the scroller:
   <img src = "/Final%20Report/images/1.png"/>
 </p>
   
-Select a lication in the image to track the vasculature athe surrounding region:
+Select a location in the image to track the vasculature at the surrounding region:
 <p align="center">
   <img src = "/Final%20Report/images/2.png"/>
 </p>
 
-Use mouse to interacte with the UI to view the vasculature structure at the region of interest from different angles to track the 3D structure better: 
+Use mouse to interact with the UI to view the vasculature structure at the region of interest from different angles to track the 3D structure better: 
 
 <p align="center">
   <img src = "/Final%20Report/images/3.png"/>
